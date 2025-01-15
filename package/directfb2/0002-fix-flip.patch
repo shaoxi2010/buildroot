@@ -1,0 +1,33 @@
+diff -urN a/systems/drmkms/drmkms_layer.c b/systems/drmkms/drmkms_layer.c
+--- a/systems/drmkms/drmkms_layer.c	2024-10-10 04:05:07.000000000 +0800
++++ b/systems/drmkms/drmkms_layer.c	2025-01-15 15:56:41.304693433 +0800
+@@ -306,7 +306,7 @@
+      }
+ 
+      if (flip)
+-          dfb_surface_flip( surface, false );
++          dfb_surface_flip( surface, true );
+ 
+      if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) {
+           while (data->flip_pending) {
+@@ -673,7 +673,7 @@
+      }
+ 
+      if (flip)
+-          dfb_surface_flip( surface, false );
++          dfb_surface_flip( surface, true );
+ 
+      vbl.request.type     = DRM_VBLANK_EVENT | DRM_VBLANK_RELATIVE;
+      vbl.request.sequence = 1;
+diff -urN a/systems/fbdev/fbdev_layer.c b/systems/fbdev/fbdev_layer.c
+--- a/systems/fbdev/fbdev_layer.c	2024-10-10 04:05:07.000000000 +0800
++++ b/systems/fbdev/fbdev_layer.c	2025-01-15 13:47:28.547143638 +0800
+@@ -453,7 +453,7 @@
+      if ((flags & DSFLIP_WAIT) && (shared->pollvsync_after || !(flags & DSFLIP_ONSYNC)))
+           dfb_screen_wait_vsync( dfb_screen_at( DSCID_PRIMARY ) );
+ 
+-     dfb_surface_flip( surface, false );
++     dfb_surface_flip( surface, true );
+ 
+      return DFB_OK;
+ }

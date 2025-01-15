@@ -1,0 +1,11 @@
+config BR2_PACKAGE_DFBTERM
+	bool "DFBTerm"
+	depends on BR2_PACKAGE_DIRECTFB2
+	select BR2_PACKAGE_DIRECTFB2_LITE
+	help
+	  DFBTerm is a terminal emulator runnning on DirectFB2 and
+	  based on libzvt.
+
+	  libzvt (Zed's virtual terminal emulation library) is
+	  included directly in the source code, although it is
+	  possible to use the system's libzvt library.

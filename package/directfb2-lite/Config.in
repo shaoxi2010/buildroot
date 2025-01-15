@@ -1,0 +1,7 @@
+config BR2_PACKAGE_DIRECTFB2_LITE
+	bool "directfb2-lite"
+	depends on BR2_PACKAGE_DIRECTFB2
+	help
+	  LiTE stands for Lightweight Toolkit Enabler and is a simple
+	  user interface library on top of DirectFB2. Widgets can be
+	  used with a default theme, or with its own custom theme.

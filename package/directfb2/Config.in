@@ -1,0 +1,81 @@
+menuconfig BR2_PACKAGE_DIRECTFB2
+	bool "DirectFB2"
+	default n
+	help
+	  DirectFB2 is a fork of DirectFB (Direct Frame Buffer) whose
+	  purpose is to preserve and maintain the DirectFB graphics
+	  backend, particularly for use on embedded systems.
+
+	  The official DirectFB2 website can be visited via
+	  https://directfb2.github.io/
+
+if BR2_PACKAGE_DIRECTFB2
+
+menu "DirectFB2 Options"
+
+config BR2_PACKAGE_DIRECTFB2_DEBUG
+	bool "Enable Debug support"
+
+config BR2_PACKAGE_DIRECTFB2_DRMKMS
+	bool "Enable Linux DRM/KMS support"
+	depends on BR2_PACKAGE_LIBDRM
+
+comment "Enable Linux DRM/KMS support if libdrm is enabled"
+	depends on !BR2_PACKAGE_LIBDRM
+
+config BR2_PACKAGE_DIRECTFB2_FBDEV
+	bool "Enable Linux Framebuffer support"
+
+config BR2_PACKAGE_DIRECTFB2_LINUX_INPUT
+	bool "Enable Linux input support"
+
+if BR2_X86_CPU_HAS_MMX
+config BR2_PACKAGE_DIRECTFB2_MMX
+	bool "Enable MMX assembly support"
+	default y
+endif #	BR2_X86_CPU_HAS_MMX
+
+config BR2_PACKAGE_DIRECTFB2_MULTI
+	bool "Enable multi application support"
+
+config BR2_PACKAGE_DIRECTFB2_MULTI_KERNEL
+	bool "Enable Linux fusion device support for multi application"
+	select BR2_PACKAGE_DIRECTFB2_MULTI
+
+# if BR2_ARM_CPU_HAS_NEON
+# config BR2_PACKAGE_DIRECTFB2_NEON
+#	bool "Enable NEON assembly support"
+#	default y
+# endif # BR2_ARM_CPU_HAS_NEON
+#
+# DirectFB2 currently has issues enabling NEON. For more details, see:
+# https://github.com/directfb2/DirectFB2/issues/142
+
+config BR2_PACKAGE_DIRECTFB2_NETWORK
+	bool "Enable network support"
+
+config BR2_PACKAGE_DIRECTFB2_SENTINELS
+	bool "Enable surface sentinels at the end of chunks in video memory"
+
+config BR2_PACKAGE_DIRECTFB2_SMOOTH_SCALING
+	bool "Enable smooth scaling support"
+
+endmenu
+
+menu "DirectFB2 Applications"
+source "package/directfb2-examples/Config.in"
+source "package/dfbterm/Config.in"
+endmenu
+
+menu "DirectFB2 Utilities"
+source "package/directfb2-media/Config.in"
+source "package/directfb2-tools/Config.in"
+source "package/directfb2-csource/Config.in"
+source "package/directfb2-lite/Config.in"
+endmenu
+
+menu "DirectFB2 Plugins"
+source "package/directfb2-tslib/Config.in"
+endmenu
+
+endif # BR2_PACKAGE_DIRECTFB2

@@ -1,0 +1,113 @@
+diff -urN a/src/core/surface_buffer.h b/src/core/surface_buffer.h
+--- a/src/core/surface_buffer.h	2024-10-10 04:05:07.000000000 +0800
++++ b/src/core/surface_buffer.h	2025-01-15 16:08:05.943696564 +0800
+@@ -91,7 +91,6 @@
+           if ((lock)->allocation) {                                                                                    \
+                D_ASSERT( (lock)->pitch > 0 || ((lock)->addr == NULL && (lock)->phys == 0) );                           \
+                D_ASSUME( (lock)->addr != NULL || (lock)->phys != 0 || (lock)->offset != ~0 || (lock)->handle != NULL );\
+-               D_ASSUME( (lock)->offset == (lock)->allocation->offset || (lock)->offset == ~0 );                       \
+           }                                                                                                            \
+           else {                                                                                                       \
+                D_ASSERT( (lock)->buffer == NULL );                                                                     \
+diff -urN a/systems/drmkms/drmkms_system.c b/systems/drmkms/drmkms_system.c
+--- a/systems/drmkms/drmkms_system.c	2024-10-10 04:05:07.000000000 +0800
++++ b/systems/drmkms/drmkms_system.c	2025-01-15 16:09:17.605265003 +0800
+@@ -110,17 +110,17 @@
+           encoder = NULL;
+ 
+           if (connector->count_modes > 0) {
+-               D_DEBUG_AT( DRMKMS_Screen, "  -> found connector %u\n", connector->connector_id );
++               D_DEBUG_AT( DRMKMS_System, "  -> found connector %u\n", connector->connector_id );
+ 
+                if (connector->encoder_id) {
+-                    D_DEBUG_AT( DRMKMS_Screen, "  -> connector is bound to encoder %u\n", connector->encoder_id );
++                    D_DEBUG_AT( DRMKMS_System, "  -> connector is bound to encoder %u\n", connector->encoder_id );
+ 
+                     encoder = drmModeGetEncoder( drmkms->fd, connector->encoder_id );
+                     if (!encoder)
+                          continue;
+                }
+                else {
+-                    D_DEBUG_AT( DRMKMS_Screen, "  -> searching for appropriate encoder\n" );
++                    D_DEBUG_AT( DRMKMS_System, "  -> searching for appropriate encoder\n" );
+ 
+                     for (j = 0; j < drmkms->resources->count_encoders; j++) {
+                          encoder = drmModeGetEncoder( drmkms->fd, drmkms->resources->encoders[j] );
+@@ -131,7 +131,7 @@
+ 
+                          for (k = 0; k < drmkms->enabled_crtcs; k++) {
+                               if (drmkms->encoder[k]->encoder_id == encoder->encoder_id) {
+-                                   D_DEBUG_AT( DRMKMS_Screen, "  -> encoder %u is already in use by connector %u\n",
++                                   D_DEBUG_AT( DRMKMS_System, "  -> encoder %u is already in use by connector %u\n",
+                                                encoder->encoder_id, drmkms->connector[k]->connector_id );
+                                    busy = 1;
+                               }
+@@ -140,19 +140,19 @@
+                          if (busy)
+                               continue;
+ 
+-                         D_DEBUG_AT( DRMKMS_Screen, "  -> found encoder %u\n", encoder->encoder_id );
++                         D_DEBUG_AT( DRMKMS_System, "  -> found encoder %u\n", encoder->encoder_id );
+                          break;
+                     }
+                }
+ 
+                if (encoder) {
+                     if (encoder->crtc_id) {
+-                         D_DEBUG_AT( DRMKMS_Screen, "  -> encoder is bound to crtc %u\n", encoder->crtc_id );
++                         D_DEBUG_AT( DRMKMS_System, "  -> encoder is bound to crtc %u\n", encoder->crtc_id );
+ 
+                          drmkms->crtc = drmModeGetCrtc( drmkms->fd, encoder->crtc_id );
+                     }
+                     else {
+-                         D_DEBUG_AT( DRMKMS_Screen, "  -> searching for appropriate crtc\n" );
++                         D_DEBUG_AT( DRMKMS_System, "  -> searching for appropriate crtc\n" );
+ 
+                          for (j = 0; j < drmkms->resources->count_crtcs; j++) {
+                               if (!(encoder->possible_crtcs & (1 << j)))
+@@ -162,7 +162,7 @@
+ 
+                               for (k = 0; k < drmkms->enabled_crtcs; k++) {
+                                    if (drmkms->encoder[k]->crtc_id == drmkms->resources->crtcs[j]) {
+-                                        D_DEBUG_AT( DRMKMS_Screen, "  -> crtc %u is already in use by encoder %u\n",
++                                        D_DEBUG_AT( DRMKMS_System, "  -> crtc %u is already in use by encoder %u\n",
+                                                     drmkms->resources->crtcs[j], drmkms->encoder[k]->encoder_id );
+                                         busy = 1;
+                                    }
+@@ -173,14 +173,14 @@
+ 
+                               encoder->crtc_id = drmkms->resources->crtcs[j];
+ 
+-                              D_DEBUG_AT( DRMKMS_Screen, "  -> found crtc %u\n", encoder->crtc_id );
++                              D_DEBUG_AT( DRMKMS_System, "  -> found crtc %u\n", encoder->crtc_id );
+ 
+                               drmkms->crtc = drmModeGetCrtc( drmkms->fd, encoder->crtc_id );
+                               break;
+                          }
+ 
+                          if (!encoder->crtc_id) {
+-                              D_DEBUG_AT( DRMKMS_Screen, "  -> cannot find crtc for encoder %u\n", encoder->encoder_id );
++                              D_DEBUG_AT( DRMKMS_System, "  -> cannot find crtc for encoder %u\n", encoder->encoder_id );
+                               break;
+                          }
+                     }
+@@ -189,7 +189,7 @@
+                     drmkms->encoder[drmkms->enabled_crtcs]   = encoder;
+ 
+                     for (j = 0; j < connector->count_modes; j++)
+-                         D_DEBUG_AT( DRMKMS_Screen, "    => modes[%2d] is %ux%u@%uHz\n", j,
++                         D_DEBUG_AT( DRMKMS_System, "    => modes[%2d] is %ux%u@%uHz\n", j,
+                                      connector->modes[j].hdisplay, connector->modes[j].vdisplay,
+                                      connector->modes[j].vrefresh );
+ 
+diff -urN a/systems/fbdev/fbdev_surfacemanager.c b/systems/fbdev/fbdev_surfacemanager.c
+--- a/systems/fbdev/fbdev_surfacemanager.c	2024-10-10 04:05:07.000000000 +0800
++++ b/systems/fbdev/fbdev_surfacemanager.c	2025-01-15 16:08:05.944696585 +0800
+@@ -20,6 +20,7 @@
+ #include <core/gfxcard.h>
+ #include <core/surface_allocation.h>
+ #include <core/surface_buffer.h>
++#include <directfb_util.h>
+ #include <fusion/shmalloc.h>
+ 
+ #include "fbdev_surfacemanager.h"

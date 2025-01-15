@@ -1,0 +1,104 @@
+menuconfig BR2_PACKAGE_DIRECTFB2_EXAMPLES
+	bool "DirectFB2 examples"
+	depends on BR2_PACKAGE_DIRECTFB2
+	select BR2_PACKAGE_DIRECTFB2_CSOURCE
+	help
+	  The DirectFB2-examples package contains a set of simple
+	  DirectFB2 applications that can be used to test and
+	  demonstrate various DirectFB2 features. Note that DirectFB2
+	  is a fork of DirectFB, as the original DirectFB stopped
+	  being maintained in 2016.
+
+	  The official DirectFB2 website can be visited via
+	  https://directfb2.github.io/
+
+if BR2_PACKAGE_DIRECTFB2_EXAMPLES
+
+choice
+	prompt "DirectFBGL interface version"
+	default BR2_PACKAGE_DIRECTFB2_EXAMPLES_GL_VERSION_NULL
+
+config BR2_PACKAGE_DIRECTFB2_EXAMPLES_GL_VERSION_NULL
+	bool "-"
+comment "Build without version flag specified"
+
+config BR2_PACKAGE_DIRECTFB2_EXAMPLES_GL_VERSION_1
+	bool "1"
+comment "Pass -Ddirectfbgl=1 to the Meson build system"
+
+config BR2_PACKAGE_DIRECTFB2_EXAMPLES_GL_VERSION_2
+	bool "2"
+comment "Pass -Ddirectfbgl=2 to the Meson build system"
+
+endchoice
+
+config BR2_PACKAGE_DIRECTFB2_EXAMPLES_GL
+	string "PATH to OpenGL header"
+	default ""
+
+config BR2_PACKAGE_DIRECTFB2_EXAMPLES_GL_CFLAGS
+	string "CFLAGS of the OpenGL implementation"
+	default ""
+
+config BR2_PACKAGE_DIRECTFB2_EXAMPLES_GL_LDFLAGS
+	string "LDFLAGS of the OpenGL implementation"
+	default ""
+
+# Disabled for now as directfb2-csource currently does not generate
+# pkgconfig file
+#
+# choice
+#	prompt "Select font header for DirectFB2 examples"
+#	default BR2_PACKAGE_DIRECTFB2_EXAMPLES_FONT_HEADER_DISABLED
+#
+# config BR2_PACKAGE_DIRECTFB2_EXAMPLES_FONT_HEADER_DISABLED
+#	bool "disabled"
+#
+# config BR2_PACKAGE_DIRECTFB2_EXAMPLES_FONT_HEADER_DGIFF
+#	bool "dgiff"
+#
+# config BR2_PACKAGE_DIRECTFB2_EXAMPLES_FONT_HEADER_ttf
+#	bool "ttf"
+#
+#endchoice
+
+# Disabled for now as directfb2-csource currently does not generate
+# pkgconfig file
+#
+# choice
+#	prompt "Select image header for DirectFB2 examples"
+#	default BR2_PACKAGE_DIRECTFB2_EXAMPLES_DISABLED
+#
+# config BR2_PACKAGE_DIRECTFB2_EXAMPLES_DISABLED
+#	bool "disabled"
+#
+# config BR2_PACKAGE_DIRECTFB2_EXAMPLES_DFIFF
+#	bool "dfiff"
+#
+# config BR2_PACKAGE_DIRECTFB2_EXAMPLES_PNG
+#	bool "png"
+#
+# endchoice
+
+# Disabled for now as directfb2-csource currently does not generate
+# pkgconfig file
+#
+# choice
+#	prompt "Select video header for DirectFB2 examples"
+#	default BR2_PACKAGE_DIRECTFB2_EXAMPLES_VIDEO_HEADERS_DISABLED
+#
+# config BR2_PACKAGE_DIRECTFB2_EXAMPLES_VIDEO_HEADERS_DISABLED
+#	bool "disabled"
+#
+# config BR2_PACKAGE_DIRECTFB2_EXAMPLES_VIDEO_HEADERS_DFVFF
+#	bool "dfvff"
+#
+# config BR2_PACKAGE_DIRECTFB2_EXAMPLES_VIDEO_HEADERS_M2V
+#	bool "m2v"
+#
+# config BR2_PACKAGE_DIRECTFB2_EXAMPLES_VIDEO_HEADERS_264
+#	bool "264"
+#
+# endchoice
+
+endif # BR2_PACKAGE_DIRECTFB2_EXAMPLES
