@@ -31,13 +31,25 @@ config BR2_PACKAGE_XSERVER_XORG_SERVER
 	select BR2_PACKAGE_XDATA_XBITMAPS
 	select BR2_PACKAGE_XORGPROTO
 	select BR2_PACKAGE_XUTIL_UTIL_MACROS
+	select BR2_PACKAGE_XFONT_FONT_UTILS
 	select BR2_PACKAGE_XKEYBOARD_CONFIG
 	help
-	  X.Org X server
+	  X.Org X server with glamor hacks for gles2 
+	  and rga based exa
 
-	  http://xorg.freedesktop.org
+	  http://github.com/JeffyCN/xorg-xserver
 
 if BR2_PACKAGE_XSERVER_XORG_SERVER
+
+config BR2_PACKAGE_XSERVER_XORG_SERVER_GLAMOR_ACCELERATED
+	bool "Glamor-accelerate"
+	depends on BR2_PACKAGE_HAS_LIBEGL
+	select BR2_PACKAGE_LIBEPOXY
+	help
+	  build Xorg server with glamor-accelerate
+
+comment "Glamor-accelerate needs opengl or gles2"
+	depends on !BR2_PACKAGE_HAS_LIBEGL
 
 choice
 	prompt "X Window System server type"

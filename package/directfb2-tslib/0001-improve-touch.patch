@@ -1,0 +1,285 @@
+diff -urN a/tslib.c b/tslib.c
+--- a/tslib.c	2023-03-24 16:25:21.000000000 +0800
++++ b/tslib.c	2025-01-16 14:14:46.000000000 +0800
+@@ -21,6 +21,7 @@
+ #include <core/input_driver.h>
+ #include <direct/thread.h>
+ #include <fusion/vector.h>
++#include <linux/input.h>
+ #include <tslib.h>
+ 
+ D_DEBUG_DOMAIN( Tslib, "Input/tslib", "tslib Input Driver" );
+@@ -33,11 +34,14 @@
+      CoreInputDevice     *device;
+ 
+      struct tsdev        *ts;
+-     struct ts_sample_mt *samp;
++     DFBBoolean        is_muti_touch;
++     struct ts_sample_mt *mt_samp;
++     struct ts_sample    sg_samp;
+ 
+      int                  max_slots;
+ 
+-     struct ts_sample    *old_samp;
++     struct ts_sample    *old_mt_samp;
++     struct ts_sample    old_sg_samp;
+ 
+      DirectThread        *thread;
+ } tslibData;
+@@ -94,66 +98,147 @@
+ 
+ /**********************************************************************************************************************/
+ 
+-static void *
+-tslib_event_thread( DirectThread *thread,
+-                    void         *arg )
++static void 
++tslib_mt_read(tslibData *data)
+ {
+-     tslibData *data = arg;
+-     int        i;
+-
+-     D_DEBUG_AT( Tslib, "%s()\n", __FUNCTION__ );
+-
+-     while (ts_read_mt( data->ts, &data->samp, data->max_slots, 1 ) == 1) {
++     int i = 0;
++     D_DEBUG_AT(Tslib, "%s()\n", __FUNCTION__);
++     while (true) {
+           DFBInputEvent evt = { .type = DIET_UNKNOWN };
+ 
++		int ret = ts_read_mt(data->ts, &data->mt_samp, data->max_slots, 1);
++		if (ret < 0) {
++			D_DEBUG_AT(Tslib, "ts_read_mt failed: %d\n", ret);
++			break;
++          }
++          if (ret == 0){
++               usleep(5000);
++               continue; // no data
++          }
++
+           for (i = 0; i < data->max_slots; i++) {
+-               if (data->samp[i].valid < 1)
++               if (data->mt_samp[i].valid < 1)
+                     continue;
+ 
+-               if (data->samp[i].pressure) {
+-                    if (data->samp[i].x != data->old_samp[i].x) {
+-                         evt.type    = DIET_AXISMOTION;
+-                         evt.flags   = DIEF_AXISABS | DIEF_BUTTONS;
+-                         evt.axis    = DIAI_X;
+-                         evt.axisabs = data->samp[i].x;
++               if (data->mt_samp[i].pressure) {
++                    if (data->mt_samp[i].x != data->old_mt_samp[i].x) {
++                         evt.type = DIET_AXISMOTION;
++                         evt.flags = DIEF_AXISABS | DIEF_BUTTONS;
++                         evt.axis = DIAI_X;
++                         evt.axisabs = data->mt_samp[i].x;
+                          evt.buttons = DIBM_LEFT;
+                          evt.slot_id = i;
+ 
+-                         dfb_input_dispatch( data->device, &evt );
++                         dfb_input_dispatch(data->device, &evt);
+ 
+-                         data->old_samp[i].x = data->samp[i].x;
++                         data->old_mt_samp[i].x = data->mt_samp[i].x;
+                     }
+ 
+-                    if (data->samp[i].y != data->old_samp[i].y) {
+-                         evt.type    = DIET_AXISMOTION;
+-                         evt.flags   = DIEF_AXISABS | DIEF_BUTTONS;
+-                         evt.axis    = DIAI_Y;
+-                         evt.axisabs = data->samp[i].y;
++                    if (data->mt_samp[i].y != data->old_mt_samp[i].y) {
++                         evt.type = DIET_AXISMOTION;
++                         evt.flags = DIEF_AXISABS | DIEF_BUTTONS;
++                         evt.axis = DIAI_Y;
++                         evt.axisabs = data->mt_samp[i].y;
+                          evt.buttons = DIBM_LEFT;
+                          evt.slot_id = i;
+ 
+-                         dfb_input_dispatch( data->device, &evt );
++                         dfb_input_dispatch(data->device, &evt);
+ 
+-                         data->old_samp[i].y = data->samp[i].y;
++                         data->old_mt_samp[i].y = data->mt_samp[i].y;
+                     }
+-               }
+-               else {
+-                    data->old_samp[i].x = -1;
+-                    data->old_samp[i].y = -1;
++               } else {
++                    data->old_mt_samp[i].x = -1;
++                    data->old_mt_samp[i].y = -1;
+                }
+ 
+-               if (data->samp[i].pressure != data->old_samp[i].pressure) {
+-                    evt.type    = data->samp[i].pressure ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
+-                    evt.flags   = DIEF_NONE;
+-                    evt.button  = DIBI_LEFT;
++               if (data->mt_samp[i].pressure != data->old_mt_samp[i].pressure) {
++                    evt.type = data->mt_samp[i].pressure ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
++                    evt.flags = DIEF_NONE;
++                    evt.button = DIBI_LEFT;
+                     evt.slot_id = i;
+ 
+-                    dfb_input_dispatch( data->device, &evt );
++                    dfb_input_dispatch(data->device, &evt);
++
++                    data->old_mt_samp[i].pressure = data->mt_samp[i].pressure;
++               }
++          }
++     }
++}
++
++static void 
++tslib_sg_read(tslibData *data)
++{
++     data->old_sg_samp.x = -1;
++     data->old_sg_samp.y = -1;
++     data->old_sg_samp.pressure = 0;
++     
++     D_DEBUG_AT(Tslib, "%s()\n", __FUNCTION__);
++
++     while (true) {
++          DFBInputEvent evt = { .type = DIET_UNKNOWN };
++
++          int ret = ts_read(data->ts, &data->sg_samp, 1);
++          if (ret < 0) {
++               D_DEBUG_AT(Tslib, "ts_read failed: %d\n", ret);
++               break;
++          }
++          if (ret == 0){
++               usleep(5000);
++               continue; // no data
++          }
++
++          if (data->sg_samp.pressure) {
++               if (data->sg_samp.x != data->old_sg_samp.x) {
++                    evt.type = DIET_AXISMOTION;
++                    evt.flags = DIEF_AXISABS | DIEF_BUTTONS;
++                    evt.axis = DIAI_X;
++                    evt.axisabs = data->sg_samp.x;
++                    evt.buttons = DIBM_LEFT;
+ 
+-                    data->old_samp[i].pressure = data->samp[i].pressure;
++                    dfb_input_dispatch(data->device, &evt);
++
++                    data->old_sg_samp.x = data->sg_samp.x;
+                }
++
++               if (data->sg_samp.y != data->old_sg_samp.y) {
++                    evt.type = DIET_AXISMOTION;
++                    evt.flags = DIEF_AXISABS | DIEF_BUTTONS;
++                    evt.axis = DIAI_Y;
++                    evt.axisabs = data->sg_samp.y;
++                    evt.buttons = DIBM_LEFT;
++
++                    dfb_input_dispatch(data->device, &evt);
++
++                    data->old_sg_samp.y = data->sg_samp.y;
++               }
++          } else {
++               data->old_sg_samp.x = -1;
++               data->old_sg_samp.y = -1;
++          }
++
++          if (data->sg_samp.pressure != data->old_sg_samp.pressure) {
++               evt.type = data->sg_samp.pressure ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
++               evt.flags = DIEF_NONE;
++               evt.button = DIBI_LEFT;
++
++               dfb_input_dispatch(data->device, &evt);
++
++               data->old_sg_samp.pressure = data->sg_samp.pressure;
+           }
+      }
++}
++
++static void *
++tslib_event_thread( DirectThread *thread,
++                    void         *arg )
++{
++     tslibData *data = arg;
++
++     D_DEBUG_AT( Tslib, "%s()\n", __FUNCTION__ );
++     if (data->is_muti_touch)
++          tslib_mt_read(data);
++     else
++          tslib_sg_read(data);
+ 
+      D_DEBUG_AT( Tslib, "Tslib Event thread terminated\n" );
+ 
+@@ -263,6 +348,25 @@
+      snprintf( driver_info->name,   DFB_INPUT_DRIVER_INFO_NAME_LENGTH,   "tslib" );
+      snprintf( driver_info->vendor, DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH, "DirectFB" );
+ }
++#define LONG_BITS (sizeof(long) << 3)
++#define NUM_LONGS(bits) (((bits) + LONG_BITS - 1) / LONG_BITS)
++
++static inline DFBBoolean 
++testBit(long bit, const long *array)
++{
++     return (array[bit / LONG_BITS] >> bit % LONG_BITS) & 1;
++}
++
++static DFBBoolean
++ts_is_muti_touch( struct tsdev *ts )
++{
++     int fd = ts_fd( ts );
++     long absbits[NUM_LONGS(ABS_CNT)];
++     if (ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(absbits)), absbits) >= 0) {
++          return testBit(ABS_MT_POSITION_X, absbits);
++     }
++     return DFB_FALSE;
++}
+ 
+ static DFBResult
+ driver_open_device( CoreInputDevice  *device,
+@@ -308,24 +412,25 @@
+ 
+      data->device = device;
+      data->ts     = ts;
++     data->is_muti_touch = ts_is_muti_touch( ts );
+ 
+-     data->samp = D_CALLOC( MAX_TSLIB_SLOTS, sizeof(struct ts_sample_mt) );
+-     if (!data->samp) {
++     data->mt_samp = D_CALLOC( MAX_TSLIB_SLOTS, sizeof(struct ts_sample_mt) );
++     if (!data->mt_samp) {
+           D_OOM();
+           goto error;
+      }
+ 
+      data->max_slots = 1;
+ 
+-     data->old_samp = D_CALLOC( MAX_TSLIB_SLOTS, sizeof(struct ts_sample) );
+-     if (!data->old_samp) {
++     data->old_mt_samp = D_CALLOC( MAX_TSLIB_SLOTS, sizeof(struct ts_sample) );
++     if (!data->old_mt_samp) {
+           D_OOM();
+           goto error;
+      }
+ 
+      for (i = 0; i < MAX_TSLIB_SLOTS; i++) {
+-          data->old_samp[i].x = -1;
+-          data->old_samp[i].y = -1;
++          data->old_mt_samp[i].x = -1;
++          data->old_mt_samp[i].y = -1;
+      }
+ 
+      /* Start tslib event thread. */
+@@ -363,11 +468,11 @@
+      direct_thread_join( data->thread );
+      direct_thread_destroy( data->thread );
+ 
+-     if (data->old_samp)
+-          D_FREE( data->old_samp );
++     if (data->old_mt_samp)
++          D_FREE( data->old_mt_samp );
+ 
+-     if (data->samp)
+-          D_FREE( data->samp );
++     if (data->mt_samp)
++          D_FREE( data->mt_samp );
+ 
+      ts_close( data->ts );
+ 

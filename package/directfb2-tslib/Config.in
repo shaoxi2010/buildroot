@@ -2,6 +2,6 @@ config BR2_PACKAGE_DIRECTFB2_TSLIB
 	bool "directfb2-tslib"
 	depends on BR2_PACKAGE_DIRECTFB2 && BR2_PACKAGE_TSLIB
 	help
-	  DirectFB2-tslib contains tslib input plugin.
+	  DirectFB2-tslib contains tslib input driver for DirectFB2.
 comment "directfb-tslib available if tslib is enabled"
 	depends on !BR2_PACKAGE_TSLIB || !BR2_PACKAGE_DIRECTFB2

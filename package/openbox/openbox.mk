@@ -58,4 +58,22 @@ else
 OPENBOX_CONF_OPTS += --disable-xcursor
 endif
 
+# Install the systemd unit only when nodm nor xdm aren't enabled, as
+# they would be responsible for starting the server.
+ifeq ($(BR2_PACKAGE_NODM)$(BR2_PACKAGE_XAPP_XDM),)
+define OPENBOX_INSTALL_INIT_SYSTEMD
+	$(INSTALL) -D -m 0644 package/openbox/openbox.service \
+		$(TARGET_DIR)/usr/lib/systemd/system/openbox.service
+endef
+endif
+
+# Install the init script only when neither nodm nor xdm are enabled, as
+# they would be responsible for starting the server.
+ifeq ($(BR2_PACKAGE_NODM)$(BR2_PACKAGE_XAPP_XDM),)
+define OPENBOX_INSTALL_INIT_SYSV
+	$(INSTALL) -D -m 755 package/openbox/S45openbox \
+		$(TARGET_DIR)/etc/init.d/S45openbox
+endef
+endif
+
 $(eval $(autotools-package))

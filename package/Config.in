@@ -399,6 +399,7 @@ comment "QT libraries and helper libraries"
 endif
 	source "package/tekui/Config.in"
 	source "package/weston/Config.in"
+	source "package/labwc/Config.in"
 	source "package/x11r7/Config.in"
 
 comment "X applications"
@@ -441,6 +442,8 @@ comment "X window managers"
 	source "package/metacity/Config.in"
 	source "package/openbox/Config.in"
 	source "package/ratpoison/Config.in"
+	source "package/picom/Config.in"
+	source "package/xlibinput-calibrator/Config.in"
 endmenu
 
 menu "Hardware handling"
@@ -1604,6 +1607,7 @@ endif
 	source "package/sqlite/Config.in"
 	source "package/timescaledb/Config.in"
 	source "package/unixodbc/Config.in"
+	source "package/freetds/Config.in"
 endmenu
 
 menu "Filesystem"
@@ -1674,6 +1678,7 @@ menu "Graphics"
 	source "package/libfreeimage/Config.in"
 	source "package/libgdiplus/Config.in"
 	source "package/libgeotiff/Config.in"
+	source "package/libgl4es/Config.in"
 	source "package/libglade/Config.in"
 	source "package/libglew/Config.in"
 	source "package/libglfw/Config.in"
@@ -2197,6 +2202,7 @@ menu "Other"
 	source "package/libuv/Config.in"
 	source "package/lightning/Config.in"
 	source "package/linux-pam/Config.in"
+	source "package/uthash/Config.in"
 if BR2_PACKAGE_LINUX_PAM
 comment "linux-pam plugins"
 	source "package/libpam-nfc/Config.in"

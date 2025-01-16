@@ -1,0 +1,11 @@
+config BR2_PACKAGE_LIBGL4ES
+	bool "libgl4es"
+	depends on BR2_PACKAGE_HAS_LIBGLES
+	select BR2_PACKAGE_PROVIDES_LIBGL
+	help
+	  GL4ES - OpenGL for GLES Hardware.
+
+	  https://github.com/ptitSeb/gl4es
+
+comment "libgl4es needs opengles support"
+	depends on !BR2_PACKAGE_HAS_LIBGLES

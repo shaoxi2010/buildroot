@@ -1,0 +1,12 @@
+[Unit]
+Description=window manager
+After=xorg.service
+
+[Service]
+Type=simple
+Environment=DISPLAY=:0
+ExecStart=/usr/bin/openbox-session
+Restart=always
+
+[Install]
+WantedBy=graphical.target

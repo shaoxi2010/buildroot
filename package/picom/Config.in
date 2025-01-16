@@ -1,0 +1,42 @@
+config BR2_PACKAGE_PICOM
+	bool "picom"
+	depends on BR2_PACKAGE_XORG7
+	select BR2_PACKAGE_XLIB_LIBX11 # libx11
+	select BR2_PACKAGE_LIBXCB # libx11-xcb
+	select BR2_PACKAGE_XCB_PROTO # xproto
+	select BR2_PACKAGE_XCB_UTIL # xcb-util
+	select BR2_PACKAGE_XLIB_LIBXDAMAGE # xcb-damage
+	select BR2_PACKAGE_XLIB_LIBXFIXES # xcb-xfixes
+	select BR2_PACKAGE_XCB_UTIL_RENDERUTIL # xcb-render-util
+	select BR2_PACKAGE_XLIB_LIBXRENDER # xcb-render
+	select BR2_PACKAGE_XLIB_LIBXRANDR # xcb-randr
+	select BR2_PACKAGE_XLIB_LIBXCOMPOSITE # xcb-composite
+	select BR2_PACKAGE_XCB_UTIL_IMAGE # xcb-image
+	select BR2_PACKAGE_XLIB_LIBXPRESENT # xcb-present
+	select BR2_PACKAGE_PIXMAN # pixman
+	select BR2_PACKAGE_LIBCONFIG # libconfig
+	select BR2_PACKAGE_LIBEV # libev
+	select BR2_PACKAGE_UTHASH # uthash
+	default n
+	help
+	  picom is a compositor for X, and a fork of Compton.
+
+	  The official picom website can be visited via
+	  https://github.com/yshui/picom
+
+comment "picom requires X11"
+	depends on !BR2_PACKAGE_XORG7
+
+if BR2_PACKAGE_PICOM
+	config BR2_PICOM_USE_OPENGL
+		bool "picom OpenGL backend"
+		depends on BR2_PACKAGE_HAS_LIBGL
+		select BR2_PACKAGE_LIBEPOXY # libepoxy
+		default n
+
+	comment "picom opengl backend requires OpenGL support"
+		depends on !BR2_PACKAGE_HAS_LIBGL
+endif # BR2_PACKAGE_PICOM
+
+
+

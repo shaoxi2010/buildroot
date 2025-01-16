@@ -1,0 +1,11 @@
+config BR2_PACKAGE_FREETDS
+	bool "freetds"
+	depends on !BR2_STATIC_LIBS # uses dlfcn.h
+	depends on BR2_PACKAGE_UNIXODBC
+	help
+	  FreeTDS is a set of libraries for Unix and Linux that allows your
+	  programs to natively talk to Microsoft SQL Server and Sybase databases,
+	  in addition to other databases.
+
+comment "freetds need unixodbc"
+	depends on !BR2_PACKAGE_UNIXODBC

@@ -1,0 +1,43 @@
+#!/bin/sh
+#
+# Starts picom
+#
+
+BIN=/usr/bin/picom
+PIDFILE=/var/run/picom.pid
+export DISPLAY=:0
+
+PICOM_ARGS="--backend xrender"
+
+start() {
+	printf "Starting picom: "
+	start-stop-daemon -S -q -b -m -p $PIDFILE --exec $BIN -- $PICOM_ARGS
+	[ $? = 0 ] && sleep 3 && echo "OK" || echo "FAIL"
+}
+
+stop() {
+	printf "Stopping picom: "
+	start-stop-daemon -K -q -p $PIDFILE
+	[ $? = 0 ] && echo "OK" || echo "FAIL"
+}
+
+restart() {
+	stop
+	sleep 2
+	start
+}
+
+case "$1" in
+	start)
+		start
+	;;
+	stop)
+		stop
+	;;
+	restart|reload)
+		restart
+	;;
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac

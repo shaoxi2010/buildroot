@@ -76,6 +76,7 @@ endmenu
 
 menu "DirectFB2 Plugins"
 source "package/directfb2-tslib/Config.in"
+source "package/directfb2-gles/Config.in"
 endmenu
 
 endif # BR2_PACKAGE_DIRECTFB2
