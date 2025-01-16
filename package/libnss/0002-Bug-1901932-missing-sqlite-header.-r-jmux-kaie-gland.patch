@@ -1,0 +1,31 @@
+From a236a40dc9055a66903efb537aa25230a767d0af Mon Sep 17 00:00:00 2001
+From: Dario Binacchi <dario.binacchi@amarulasolutions.com>
+Date: Sat, 8 Jun 2024 18:47:25 +0200
+Subject: [PATCH] Bug 1901932 - missing sqlite header. r=jmux,kaie,glandium
+
+Signed-off-by: Dario Binacchi <dario.binacchi@amarulasolutions.com>
+
+Differential Revision: https://phabricator.services.mozilla.com/D213397
+Upstream: https://phabricator.services.mozilla.com/D213397
+---
+ nss/coreconf/location.mk | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/nss/coreconf/location.mk b/nss/coreconf/location.mk
+index 9c43394d8cb0..16e8cc7169a3 100644
+--- a/nss/coreconf/location.mk
++++ b/nss/coreconf/location.mk
+@@ -64,6 +64,10 @@ ifndef SOFTOKEN_LIB_DIR
+     SOFTOKEN_LIB_DIR = $(DIST)/lib
+ endif
+ 
++ifdef SQLITE_INCLUDE_DIR
++    INCLUDES += -I$(SQLITE_INCLUDE_DIR)
++endif
++
+ ifndef SQLITE_LIB_DIR
+     SQLITE_LIB_DIR = $(DIST)/lib
+ endif
+-- 
+2.43.0
+

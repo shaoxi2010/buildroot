@@ -1,0 +1,24 @@
+diff -urN a/inputdrivers/linux_input/linux_input.c b/inputdrivers/linux_input/linux_input.c
+--- a/inputdrivers/linux_input/linux_input.c	2024-10-10 04:05:07.000000000 +0800
++++ b/inputdrivers/linux_input/linux_input.c	2025-01-16 13:29:19.000000000 +0800
+@@ -1157,8 +1157,7 @@
+ 
+      /* Touchpad */
+      if (test_bit( EV_KEY, evbit ) &&
+-         test_bit( BTN_TOUCH, keybit ) &&
+-         test_bit( BTN_TOOL_FINGER, keybit) &&
++         (test_bit( BTN_TOUCH, keybit ) || test_bit( BTN_TOOL_FINGER, keybit)) &&
+          test_bit( EV_ABS, evbit ) &&
+          test_bit( ABS_X, absbit ) &&
+          test_bit( ABS_Y, absbit ) &&
+@@ -1277,6 +1276,10 @@
+          D_DEBUG_AT( Linux_Input, "  -> no caps!\n" );
+          return false;
+      }
++     
++     if (direct_config_has_name( "linux-input-skip-touchpad" ) && touchpad){
++          return false;
++     }
+ 
+      if (!linux_input_ir_only || (device_info.desc.type & DIDTF_REMOTE))
+           return true;

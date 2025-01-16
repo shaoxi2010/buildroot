@@ -1,0 +1,249 @@
+diff -urN a/src/plugins/platforms/linuxfb/qlinuxfbscreen.cpp b/src/plugins/platforms/linuxfb/qlinuxfbscreen.cpp
+--- a/src/plugins/platforms/linuxfb/qlinuxfbscreen.cpp	2024-07-23 18:25:47.000000000 +0800
++++ b/src/plugins/platforms/linuxfb/qlinuxfbscreen.cpp	2025-01-22 17:27:47.061676619 +0800
+@@ -98,7 +98,7 @@
+ static QRect determineGeometry(const fb_var_screeninfo &vinfo, const QRect &userGeometry)
+ {
+     int xoff = vinfo.xoffset;
+-    int yoff = vinfo.yoffset;
++    int yoff = vinfo.yoffset % vinfo.yres;
+     int w, h;
+     if (userGeometry.isValid()) {
+         w = userGeometry.width();
+@@ -134,19 +134,19 @@
+     return QRect(xoff, yoff, w, h);
+ }
+ 
+-static QSizeF determinePhysicalSize(const fb_var_screeninfo &vinfo, const QSize &mmSize, const QSize &res)
++static QSizeF determinePhysicalSize(const fb_var_screeninfo &vinfo, const QSize &mmSize, const QSize &res, int rotation)
+ {
+     int mmWidth = mmSize.width(), mmHeight = mmSize.height();
+-
++    bool xyswap = rotation == 90 || rotation == 270;
+     if (mmWidth <= 0 && mmHeight <= 0) {
+         if (vinfo.width != 0 && vinfo.height != 0
+             && vinfo.width != UINT_MAX && vinfo.height != UINT_MAX) {
+-            mmWidth = vinfo.width;
+-            mmHeight = vinfo.height;
++            mmWidth = xyswap ? vinfo.height : vinfo.width;
++            mmHeight = xyswap ? vinfo.width : vinfo.height;
+         } else {
+             const int dpi = 100;
+-            mmWidth = qRound(res.width() * 25.4 / dpi);
+-            mmHeight = qRound(res.height() * 25.4 / dpi);
++            mmWidth = xyswap ? qRound(res.height() * 25.4 / dpi) : qRound(res.width() * 25.4 / dpi);
++            mmHeight = xyswap ? qRound(res.width() * 25.4 / dpi) : qRound(res.height() * 25.4 / dpi);
+         }
+     } else if (mmWidth > 0 && mmHeight <= 0) {
+         mmHeight = res.height() * mmWidth/res.width();
+@@ -287,8 +287,9 @@
+ }
+ 
+ QLinuxFbScreen::QLinuxFbScreen(const QStringList &args)
+-    : mArgs(args), mFbFd(-1), mTtyFd(-1), mBlitter(0)
++    : mArgs(args), mFbFd(-1), mTtyFd(-1), mBlitter{0}
+ {
++    mRotation = qEnvironmentVariableIntValue("QT_QPA_FB_ROTATION");
+     mMmap.data = 0;
+ }
+ 
+@@ -302,8 +303,10 @@
+ 
+     if (mTtyFd != -1)
+         resetTty(mTtyFd, mOldTtyMode);
+-
+-    delete mBlitter;
++    
++    delete mBlitter[0];
++    if (mDoubleBufferMode)
++        delete mBlitter[1];
+ }
+ 
+ bool QLinuxFbScreen::initialize()
+@@ -313,6 +316,8 @@
+     QRegularExpression mmSizeRx(QLatin1String("mmsize=(\\d+)x(\\d+)"));
+     QRegularExpression sizeRx(QLatin1String("size=(\\d+)x(\\d+)"));
+     QRegularExpression offsetRx(QLatin1String("offset=(\\d+)x(\\d+)"));
++    QRegularExpression rotationRx(QLatin1String("rotation=(0|90|180|270)"));
++
+ 
+     QString fbDevice, ttyDevice;
+     QSize userMmSize;
+@@ -334,6 +339,8 @@
+             ttyDevice = match.captured(1);
+         else if (arg.contains(fbRx, &match))
+             fbDevice = match.captured(1);
++        else if (arg.contains(rotationRx, &match))
++			mRotation = mRotation ? mRotation : match.captured(1).toInt();
+     }
+ 
+     if (fbDevice.isEmpty()) {
+@@ -372,9 +379,12 @@
+     mDepth = determineDepth(vinfo);
+     mBytesPerLine = finfo.line_length;
+     QRect geometry = determineGeometry(vinfo, userGeometry);
+-    mGeometry = QRect(QPoint(0, 0), geometry.size());
++    if (mRotation == 90 || mRotation == 270) 
++        mGeometry = QRect(0, 0, geometry.height(), geometry.width()); //pixbuffer
++    else
++        mGeometry = QRect(0, 0, geometry.width(), geometry.height());
+     mFormat = determineFormat(vinfo, mDepth);
+-    mPhysicalSize = determinePhysicalSize(vinfo, userMmSize, geometry.size());
++    mPhysicalSize = determinePhysicalSize(vinfo, userMmSize, geometry.size(), mRotation); //dpi calc
+ 
+     // mmap the framebuffer
+     mMmap.size = finfo.smem_len;
+@@ -384,11 +394,25 @@
+         return false;
+     }
+ 
+-    mMmap.offset = geometry.y() * mBytesPerLine + geometry.x() * mDepth / 8;
++    if (mRotation == 90 || mRotation == 270) 
++        mMmap.offset = geometry.x() * mBytesPerLine + geometry.y() * mDepth / 8; //offset
++    else
++        mMmap.offset = geometry.y() * mBytesPerLine + geometry.x() * mDepth / 8;
+     mMmap.data = data + mMmap.offset;
++    mMmap.screen = vinfo.yres * finfo.line_length;
++    mDoubleBufferMode = mMmap.size >= 2 * mMmap.screen;
+ 
+     QFbScreen::initializeCompositor();
+-    mFbScreenImage = QImage(mMmap.data, geometry.width(), geometry.height(), mBytesPerLine, mFormat);
++    if (mDoubleBufferMode) {
++        mFbScreenImage[0] = QImage(mMmap.data, geometry.width(), geometry.height(), mBytesPerLine, mFormat); 
++        mFbScreenImage[1] = QImage(mMmap.data + mMmap.screen, geometry.width(), geometry.height(), mBytesPerLine, mFormat); 
++        mShadowBufferIndex = vinfo.yoffset < vinfo.yres ? 1 : 0;
++        mFbScreenImage[mShadowBufferIndex].fill(Qt::black);
++    } else {
++        mFbScreenImage[0] = QImage(mMmap.data, geometry.width(), geometry.height(), mBytesPerLine, mFormat); 
++        mFbScreenImage[0].fill(Qt::black);
++    }
++
+ 
+     mCursor = new QFbCursor(this);
+ 
+@@ -402,19 +426,67 @@
+     return true;
+ }
+ 
++void QLinuxFbScreen::activeFramebuffer(int index)
++{
++    fb_var_screeninfo vinfo;
++    if (ioctl(mFbFd, FBIOGET_VSCREENINFO, &vinfo)) {
++        qErrnoWarning(errno, "Error reading variable information");
++    }
++    if (index)
++        vinfo.yoffset += vinfo.yres;
++    else
++        vinfo.yoffset -= vinfo.yres;
++    if (ioctl(mFbFd, FBIOPAN_DISPLAY, &vinfo)) {
++        qErrnoWarning(errno, "Error fliping variable information");
++    }
++}
++
+ QRegion QLinuxFbScreen::doRedraw()
+ {
++    int i = mDoubleBufferMode ? mShadowBufferIndex: 0;
+     QRegion touched = QFbScreen::doRedraw();
+ 
+     if (touched.isEmpty())
+         return touched;
++    
++    if (!mBlitter[i]) {
++        mBlitter[i] = new QPainter(&mFbScreenImage[i]);
++
++    }
+ 
+-    if (!mBlitter)
+-        mBlitter = new QPainter(&mFbScreenImage);
++    mBlitter[i]->setCompositionMode(QPainter::CompositionMode_Source);
++    for (const QRect &rect : touched) {
++        if (mRotation) {
++            mBlitter[i]->translate(mFbScreenImage[i].width() / 2, mFbScreenImage[i].height() / 2);
++            mBlitter[i]->rotate(-mRotation);
++            mBlitter[i]->translate(-mGeometry.width() / 2, -mGeometry.height() / 2);
++            mBlitter[i]->drawImage(rect, mScreenImage, rect);
++            mBlitter[i]->resetTransform();
++        } else {
++            mBlitter[i]->drawImage(rect, mScreenImage, rect);
++        }
++    }
+ 
+-    mBlitter->setCompositionMode(QPainter::CompositionMode_Source);
+-    for (const QRect &rect : touched)
+-        mBlitter->drawImage(rect, mScreenImage, rect);
++    if (mDoubleBufferMode) {
++        activeFramebuffer(mShadowBufferIndex);
++        mShadowBufferIndex = (i + 1) % 2; //next flip
++        i = mShadowBufferIndex;
++        if (!mBlitter[i])
++            mBlitter[i] = new QPainter(&mFbScreenImage[i]);
++
++        mBlitter[i]->setCompositionMode(QPainter::CompositionMode_Source);
++        for (const QRect &rect : touched) {
++            if (mRotation) {
++                mBlitter[i]->translate(mFbScreenImage[i].width() / 2, mFbScreenImage[i].height() / 2);
++                mBlitter[i]->rotate(-mRotation);
++                mBlitter[i]->translate(-mGeometry.width() / 2, -mGeometry.height() / 2);
++                mBlitter[i]->drawImage(rect, mScreenImage, rect);
++                mBlitter[i]->resetTransform();
++            } else {
++                mBlitter[i]->drawImage(rect, mScreenImage, rect);
++            }
++        }
++    }
+ 
+     return touched;
+ }
+@@ -423,12 +495,13 @@
+ // In linuxfb's case it will also include the mouse cursor.
+ QPixmap QLinuxFbScreen::grabWindow(WId wid, int x, int y, int width, int height) const
+ {
++    int i = mDoubleBufferMode ? (mShadowBufferIndex + 1) % 2 : 0; // current
+     if (!wid) {
+         if (width < 0)
+-            width = mFbScreenImage.width() - x;
++            width = mFbScreenImage[i].width() - x;
+         if (height < 0)
+-            height = mFbScreenImage.height() - y;
+-        return QPixmap::fromImage(mFbScreenImage).copy(x, y, width, height);
++            height = mFbScreenImage[i].height() - y;
++        return QPixmap::fromImage(mFbScreenImage[i]).copy(x, y, width, height);
+     }
+ 
+     QFbWindow *window = windowForId(wid);
+@@ -440,7 +513,7 @@
+             height = geom.height() - y;
+         QRect rect(geom.topLeft() + QPoint(x, y), QSize(width, height));
+         rect &= window->geometry();
+-        return QPixmap::fromImage(mFbScreenImage).copy(rect);
++        return QPixmap::fromImage(mFbScreenImage[i]).copy(rect);
+     }
+ 
+     return QPixmap();
+diff -urN a/src/plugins/platforms/linuxfb/qlinuxfbscreen.h b/src/plugins/platforms/linuxfb/qlinuxfbscreen.h
+--- a/src/plugins/platforms/linuxfb/qlinuxfbscreen.h	2024-07-23 18:25:47.000000000 +0800
++++ b/src/plugins/platforms/linuxfb/qlinuxfbscreen.h	2025-01-22 17:27:47.066677451 +0800
+@@ -65,16 +65,20 @@
+     int mFbFd;
+     int mTtyFd;
+ 
+-    QImage mFbScreenImage;
++    bool mDoubleBufferMode;
++    int mShadowBufferIndex;
++    QImage mFbScreenImage[2];
++    int mRotation;
+     int mBytesPerLine;
+     int mOldTtyMode;
+ 
+     struct {
+         uchar *data;
+-        int offset, size;
++        int offset, size, screen;
+     } mMmap;
+ 
+-    QPainter *mBlitter;
++    QPainter *mBlitter[2];
++    void activeFramebuffer(int index);
+ };
+ 
+ QT_END_NAMESPACE

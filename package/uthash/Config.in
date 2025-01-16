@@ -1,0 +1,4 @@
+config BR2_PACKAGE_UTHASH
+    bool "uthash"
+    help
+      The uthash library is a C hash table library.

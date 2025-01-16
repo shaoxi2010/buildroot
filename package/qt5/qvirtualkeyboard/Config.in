@@ -1,0 +1,9 @@
+config BR2_PACKAGE_QVIRTUALKEYBOARD
+	bool "QVirtualKeyboard"
+	depends on BR2_PACKAGE_QT5BASE_WIDGETS
+	help
+	  Qt Virtual Keyboard is a virtual keyboard for Qt applications.
+	  It is based on the Qt Widget.
+
+comment "QVirtualKeyboard is need Qt5Widget"
+	depends on !BR2_PACKAGE_QT5BASE_WIDGETS

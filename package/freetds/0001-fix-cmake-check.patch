@@ -1,0 +1,15 @@
+diff -urN a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt	2022-02-11 09:00:01.000000000 +0000
++++ b/CMakeLists.txt	2025-01-23 09:18:15.660935890 +0000
+@@ -442,7 +442,11 @@
+ 	set(lib_NETWORK ws2_32 crypt32)
+ else(WIN32)
+ 	# TODO check libraries
++if(ENABLE_KRB5)
+ 	set(lib_NETWORK gssapi_krb5)
++else(ENABLE_KRB5)
++	set(lib_NETWORK)
++endif(ENABLE_KRB5)
+ endif(WIN32)
+ 
+ if(OPENSSL_FOUND)

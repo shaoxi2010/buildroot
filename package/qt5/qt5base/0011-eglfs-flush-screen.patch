@@ -1,0 +1,31 @@
+diff -rNu a/src/plugins/platforms/eglfs/api/qeglfsdeviceintegration.cpp b/src/plugins/platforms/eglfs/api/qeglfsdeviceintegration.cpp
+--- a/src/plugins/platforms/eglfs/api/qeglfsdeviceintegration.cpp	2020-10-27 16:02:11.000000000 +0800
++++ b/src/plugins/platforms/eglfs/api/qeglfsdeviceintegration.cpp	2021-10-09 15:06:53.958057102 +0800
+@@ -347,6 +347,27 @@
+ void QEglFSDeviceIntegration::presentBuffer(QPlatformSurface *surface)
+ {
+     Q_UNUSED(surface);
++#if defined(Q_OS_LINUX) && defined(FBIOPAN_DISPLAY)	
++	static uint32_t delay = qEnvironmentVariableIntValue("QT_QPA_EGLFS_SWAPDELAY");
++	static QTimer *timer = nullptr;
++	if (timer == nullptr) {
++		timer = new QTimer();
++		timer->setSingleShot(true);
++		timer->connect(timer, &QTimer::timeout, [=](){
++			::fb_var_screeninfo vinfo;
++			if (ioctl(framebuffer, FBIOGET_VSCREENINFO, &vinfo) == -1)
++				qWarning("Could not presentBuffer.");
++
++			vinfo.yoffset = vinfo.yoffset ? 0 : vinfo.yres;
++			if (ioctl(framebuffer, FBIOPAN_DISPLAY, &vinfo) == -1)
++				qWarning("Could not presentBuffer.");
++		});
++		
++	}
++	if (!delay)
++		delay = 10;
++	timer->start(delay);
++#endif
+ }
+ 
+ bool QEglFSDeviceIntegration::supportsPBuffers() const

@@ -1,0 +1,15 @@
+config BR2_PACKAGE_XLIBINPUT_CALIBRATOR
+	bool "xlibinput-calibrator"
+	depends on BR2_PACKAGE_XORG7
+	depends on BR2_INSTALL_LIBSTDCPP
+	select BR2_PACKAGE_XLIB_LIBX11 # libx11
+	select BR2_PACKAGE_XLIB_LIBXI # libxi
+	select BR2_PACKAGE_XLIB_LIBXRANDR # libxrandr
+	help
+	  The aim of this project is to allow to calibrate a touch screen when X11 relies on libinput. 
+	  For older X11, which doesn't relies on libinput, you have to use the old xinput_calibrator.
+
+	  https://github.com/kreijack/xlibinput_calibrator
+
+comment "xlibinput-calibrator need libstdc++ and X11 to be built."
+	depends on !BR2_PACKAGE_XORG7 || !BR2_INSTALL_LIBSTDCPP

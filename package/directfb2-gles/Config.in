@@ -1,0 +1,7 @@
+config BR2_PACKAGE_DIRECTFB2_GLES
+	bool "directfb2-gles"
+	depends on BR2_PACKAGE_DIRECTFB2 && BR2_PACKAGE_HAS_LIBGLES
+	help
+	  DirectFB2-gles2 contains the OpenGL ES 2.0 GFX driver for DirectFB2.
+comment "directfb-tslib available if tslib is enabled"
+	depends on !BR2_PACKAGE_HAS_LIBGLES || !BR2_PACKAGE_DIRECTFB2

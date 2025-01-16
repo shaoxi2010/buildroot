@@ -441,6 +441,8 @@ comment "X window managers"
 	source "package/metacity/Config.in"
 	source "package/openbox/Config.in"
 	source "package/ratpoison/Config.in"
+	source "package/picom/Config.in"
+	source "package/xlibinput-calibrator/Config.in"
 endmenu
 
 menu "Hardware handling"
@@ -1604,6 +1606,7 @@ endif
 	source "package/sqlite/Config.in"
 	source "package/timescaledb/Config.in"
 	source "package/unixodbc/Config.in"
+	source "package/freetds/Config.in"
 endmenu
 
 menu "Filesystem"
@@ -2197,6 +2200,7 @@ menu "Other"
 	source "package/libuv/Config.in"
 	source "package/lightning/Config.in"
 	source "package/linux-pam/Config.in"
+	source "package/uthash/Config.in"
 if BR2_PACKAGE_LINUX_PAM
 comment "linux-pam plugins"
 	source "package/libpam-nfc/Config.in"

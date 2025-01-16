@@ -74,6 +74,10 @@ else
 # option '-no-avx512'
 endif
 
+ifeq ($(BR2_PACKAGE_UNIXODBC), y)
+QT5BASE_DEPENDENCIES += unixodbc
+endif
+
 ifeq ($(BR2_PACKAGE_LIBDRM),y)
 QT5BASE_CONFIGURE_OPTS += -kms
 QT5BASE_DEPENDENCIES += libdrm
@@ -310,6 +314,9 @@ QT5BASE_EGLFS_DEVICE = EGLFS_DEVICE_INTEGRATION = eglfs_mali
 else ifeq ($(BR2_PACKAGE_ROCKCHIP_MALI),y)
 # use kms backend
 QT5BASE_EGLFS_DEVICE = EGLFS_DEVICE_INTEGRATION = eglfs_kms
+else ifeq ($(BR2_PACKAGE_HAS_LIBEGL),y)
+# use none backend
+QT5BASE_EGLFS_DEVICE = EGLFS_DEVICE_INTEGRATION = none
 endif
 
 ifneq ($(QT5BASE_CONFIG_FILE),)
